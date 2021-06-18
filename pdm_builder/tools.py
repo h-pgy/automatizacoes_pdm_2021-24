@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 
 def pegar_filtro_alteracoes(path = None):
 
@@ -35,4 +36,63 @@ def checar_metas_presentes(filtro, fichas):
         num_metas.append(ficha['ficha_tecnica']['numero_meta'])
 
     return [meta for meta in filtro if meta not in num_metas]
+
+
+def dropar_cols_vazias(df):
+    dropar_cols = []
+    for col in df.columns:
+        if df[col].isnull().all():
+            dropar_cols.append(col)
+    df.drop(dropar_cols, axis=1, inplace=True)
+
+def set_path(path):
+
+    if not os.path.exists(path):
+        os.mkdir(path)
+
+    return path
+
+def check_subs(fichas):
+
+    from pdm_builder.map_builder import DE_PARA_SUBS
+    set_subs = set()
+    for ficha in fichas:
+        subs = [item['subprefeitura'] for item in ficha['regionalizacao']
+                if item['subprefeitura'] not in ('CENTRO', 'LESTE', 'OESTE', 'NORTE', 'SUL')]
+
+        set_subs.update(subs)
+
+    fora = [subs for subs in set_subs if subs not in DE_PARA_SUBS]
+
+    if fora:
+        raise RuntimeError(f'Subprefeitura {fora} não previstas')
+
+def check_zonas(fichas):
+
+    from pdm_builder.map_builder import ZONAS
+
+    set_zonas = set()
+    for ficha in fichas:
+        zonas = [item['subprefeitura'] for item in ficha['regionalizacao']
+                if item not in DE_PARA_SUBS]
+
+        set_zonas.update(zonas)
+
+
+    fora = [zona for zona in set_zonas if zona not in ZONAS]
+
+    if fora:
+        raise RuntimeError(f'Zona {fora} não previstas')
+
+
+def get_map_files(num_meta, path_maps = None):
+
+    if path_maps is None:
+        path_maps = 'mapas_regionalizacao'
+
+    return [os.path.join(path_maps, file) for file in os.listdir(path_maps)
+            if file.startswith(f'{num_meta}_')]
+
+
+
 
