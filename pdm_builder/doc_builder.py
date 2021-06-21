@@ -101,9 +101,7 @@ class TableBuilder:
                 print(cell_value)
                 raise e
 
-        table.style = 'LightList-Accent1'
-
-        docx.add_page_break()
+        table.style = 'Light List Accent 1'
 
         return docx
 
