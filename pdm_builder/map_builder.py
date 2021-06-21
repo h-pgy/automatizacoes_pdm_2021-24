@@ -1,7 +1,6 @@
 import pandas as pd
 import geopandas as gpd
 import matplotlib.pyplot as plt
-import seaborn as sns
 import os
 from pdm_builder.tools import set_path
 
@@ -51,30 +50,33 @@ ZONAS = (
 
 def cmap_plot(geodf, col, f_name = None, path='mapas_subprefeituras_final', tipo_indicador = 'numérico'):
 
-    sns.set()
-
     if not os.path.exists(path):
         os.makedirs(path)
 
     if tipo_indicador == 'numérico':
-        legend = True
+        print('mapa numerico')
+        geodf[col] = geodf[col].apply(lambda x: float(x))
+        ax = geodf.plot(column=col, cmap='GnBu',
+                        legend=True,
+                        figsize=(10, 15),
+                        edgecolor='black')
     else:
-        legend = False
+        print('mapa categorico')
+        ax = geodf.plot(column=col, cmap='GnBu',
+                        legend=False,
+                        categorical=True,
+                        figsize=(10, 15),
+                        edgecolor='black')
 
-    ax = geodf.plot(column=col, cmap = 'GnBu',
-                    legend_kwds={'orientation': "vertical"},
-                    legend=legend,
-                    figsize = (10, 15),
-                    edgecolor = 'black')
 
     plt.axis('off')
 
     fig = ax.get_figure()
 
-    if f_name is None:
-        f_name = title +'.png'
-
     fig.savefig(os.path.join(path, f_name))
+
+    plt.clf()
+    plt.close(fig)
 
 class MapBuilder:
 
@@ -109,9 +111,12 @@ class MapBuilder:
         reg = controle[['Meta', 'Secretaria regionalizou?', 'Tipo de regionalização', 'Tipo do indicador?']]
         reg = reg[~reg['Meta'].isnull()].copy()
 
-        filtro = reg['Secretaria regionalizou?'].str.lower().isin(['total', 'parcial'])
+        filtro = reg['Secretaria regionalizou?'].isin(['Total', 'Parcial'])
 
-        return reg[filtro]
+        filtrado = reg[filtro].copy()
+        filtrado['Meta'] = filtrado['Meta'].apply(lambda x: str(x))
+
+        return filtrado
 
     def foi_regionalizada(self, ficha, ctrl_regionalizacao = None):
 
@@ -120,8 +125,11 @@ class MapBuilder:
 
         num_meta = ficha['ficha_tecnica']['numero_meta']
 
-        if num_meta in ctrl_regionalizacao['Meta']:
+        if str(num_meta) in ctrl_regionalizacao['Meta'].unique():
             return True
+        else:
+            print(f'{num_meta} não está no controle de regionalizacao')
+
 
     def check_if_reg_ok(self, ficha):
 
@@ -141,11 +149,15 @@ class MapBuilder:
             regionalizacao = pd.DataFrame(ficha['regionalizacao'])
 
             return regionalizacao
+        else:
+            print(f"Não foi regionalizada {ficha['file_original']}")
 
     def padronizar_valor(self, val):
 
         if pd.isnull(val):
             val = 0
+        elif val == '':
+            return 'vazio'
         try:
             val = float(val)
         except ValueError:
@@ -156,18 +168,20 @@ class MapBuilder:
     def padronizar_valores(self, df_reg):
 
         df_reg['valores_padrao'] = df_reg['projecao_quadrienio'].apply(self.padronizar_valor)
-
-        if 'categorico' in df_reg['valores_padrao']:
-            df_reg['tipo_indicador'] = 'categorico'
+        if (df_reg['valores_padrao'] == 'vazio').all():
+            df_reg['flag_dados'] = 'vazio'
         else:
-            df_reg['tipo_indicador'] = 'numerico'
+            if 'categorico' in df_reg['valores_padrao']:
+                df_reg['flag_dados'] = 'categorico'
+            else:
+                df_reg['flag_dados'] = 'numerico'
 
         return df_reg
 
     def separar_zonas_de_subs(self, reg):
 
-        zonas = reg[reg['subprefeitura'].isin(ZONAS)]
-        subs = reg[~reg['subprefeitura'].isin(ZONAS)]
+        zonas = reg[reg['subprefeitura'].isin(ZONAS)].copy()
+        subs = reg[~reg['subprefeitura'].isin(ZONAS)].copy()
 
         return zonas, subs
 
@@ -187,7 +201,10 @@ class MapBuilder:
 
         merged = mapa_subs.merge(reg, how = 'left', on='sp_nome')
 
-        return gpd.GeoDataFrame(merged, geometry = merged['geometry'], crs="EPSG:31983")
+        geodf = gpd.GeoDataFrame(merged, geometry = merged['geometry'])
+        geodf.set_crs("epsg:4326", allow_override=True, inplace=True)
+
+        return geodf
 
     def merge_zonas(self, reg, mapa_zonas = None):
 
@@ -197,36 +214,60 @@ class MapBuilder:
         reg = reg.rename({'subprefeitura' : 'nome_padrao'}, axis = 1)
         merged = mapa_zonas.merge(reg, how='left', on='nome_padrao')
 
-        return gpd.GeoDataFrame(merged, geometry=merged['geometry'], crs="EPSG:31983")
+        geodf = gpd.GeoDataFrame(merged, geometry=merged['geometry'])
+        geodf.set_crs("epsg:4326", allow_override=True, inplace=True)
 
-    def create_map(self, reg, num_meta, tipo_pol):
+        return geodf
+
+    def create_map(self, reg, num_meta, tipo_pol, binario):
 
         reg = self.padronizar_valores(reg)
         nom_file = f'{num_meta}_{tipo_pol}.png'
 
-        if 'categorico' in reg['tipo_indicador']:
-            cmap_plot(reg, 'projecao_quadrienio', nom_file, path = self.path_salvar, tipo_indicador='categorico')
+        if (reg['flag_dados'] == 'vazio').all():
+            print(f'Nenhum dado para a meta {num_meta} e tipo {tipo_pol}')
         else:
-            cmap_plot(reg, 'projecao_quadrienio', nom_file, path=self.path_salvar, tipo_indicador='numérico')
+            if 'categorico' in reg['flag_dados'].unique() or binario:
+                cmap_plot(reg, 'projecao_quadrienio', nom_file, path=self.path_salvar, tipo_indicador='categorico')
+            elif (reg['flag_dados'] == 'numerico').all():
+                cmap_plot(reg, 'projecao_quadrienio', nom_file, path=self.path_salvar, tipo_indicador='numérico')
+            else:
+                print(reg['flag_dados'].unique())
+
+    def indicador_binario(self, num_meta, controle = None):
+
+        if controle is None:
+            controle = self.controle
+
+        dados_meta = controle[controle['Meta'] == str(num_meta)]
+        if not dados_meta.empty:
+            dados_meta.reset_index(drop = True, inplace = True)
+            tipo_indi = dados_meta['Tipo do indicador?'].iloc[0]
+
+            if tipo_indi == 'Binário':
+                return True
+        return False
 
     def create_maps(self, ficha):
 
         num_meta = ficha['ficha_tecnica']['numero_meta']
+        binario = self.indicador_binario(num_meta)
         try:
             reg = self.get_regionalizacao(ficha)
         except ValueError as e:
-            print(e)
+            print(ficha['ficha_tecnica']['numero_meta'])
+            raise(e)
 
         if reg is not None and not reg.empty:
             zonas, subs = self.separar_zonas_de_subs(reg)
 
             if not zonas.empty:
                 zonas = self.merge_zonas(zonas)
-                self.create_map(zonas, num_meta, 'zonas_sp')
+                self.create_map(zonas, num_meta, 'zonas_sp', binario)
 
             if not subs.empty:
                 subs = self.merge_subs(subs)
-                self.create_map(subs, num_meta, 'subs')
+                self.create_map(subs, num_meta, 'subs', binario)
         else:
             print(f"Não há mapas para criar: {ficha['ficha_tecnica']['numero_meta']}")
 
