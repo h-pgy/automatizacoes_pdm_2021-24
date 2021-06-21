@@ -3,6 +3,7 @@ import os
 from functools import partial
 import pandas as pd
 import json
+import datetime
 
 
 class AbstractParserFichas:
@@ -32,6 +33,18 @@ class AbstractParserFichas:
         else:
             raise RuntimeError(f'Sheetname {sheet_name_padrao} nao encontrado na planilha!')
 
+    def get_cell_value(self, cell):
+        #aqui que eu vou mudar depois pra fazer type enforcement
+
+        valor = cell.value
+        if valor is None:
+            return ''
+        if type(valor) is datetime.datetime:
+            return str(valor)
+
+        return valor
+
+
     def extract_with_col_mapper(self, wb, mapper):
 
         sheet = self.get_sheet_by_name(wb, mapper['sheet_name'])
@@ -42,7 +55,7 @@ class AbstractParserFichas:
             parsed = {}
             for name, col in mapper['data_cells'].items():
                 cell = col + str(i)
-                parsed[name] = sheet[cell].value
+                parsed[name] = self.get_cell_value(sheet[cell])
             data.append(parsed)
 
         return data
@@ -57,8 +70,9 @@ class AbstractParserFichas:
             parsed = {}
             for name, col in mapper['data_cells'].items():
                 cell = col + str(i)
-                parsed[name] = sheet[cell].value
-            if parsed[mapper['col_stop']] is None:
+                parsed[name] = self.get_cell_value(sheet[cell])
+            check_stop = parsed[mapper['col_stop']]
+            if check_stop == '' or check_stop is None:
                 break
             data.append(parsed)
             i += 1
@@ -72,13 +86,14 @@ class AbstractParserFichas:
         parsed = {}
 
         for name, cell in mapper['data_cells'].items():
-            parsed[name] = sheet[cell].value
+            parsed[name] = self.get_cell_value(sheet[cell])
 
         return parsed
 
     def extract_whole_sheet(self, file, sheet_name):
 
-        return pd.read_excel(file, sheet_name=sheet_name, thousands=',').to_dict(orient='records')
+        return pd.read_excel(file, sheet_name=sheet_name,
+                             parse_dates=False, thousands=',').to_dict(orient='records')
 
     def salvar_file(self, parsed_ficha, path_salvar=None):
 
@@ -154,7 +169,7 @@ class ParserFichas(AbstractParserFichas):
     mapper_regionalizacao = dict(
         sheet_name='regionalização',
         line_ini=3,
-        col_stop='projecao_quadrienio',
+        col_stop='subprefeitura', #precisa puxar tudo
         data_cells={
             'subprefeitura': 'b',
             'projecao_quadrienio': 'c',
@@ -209,6 +224,7 @@ class ParserFichas(AbstractParserFichas):
         parsed_data = []
         wbs = self.wb_generator(path_dados)
         for file, wb in wbs:
+            print(file)
             ficha = self.extract_ficha(file, wb, salvar, path_salvar)
             parsed_data.append(ficha)
 
