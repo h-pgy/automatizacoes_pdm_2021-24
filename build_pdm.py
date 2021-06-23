@@ -1,3 +1,4 @@
+from pathlib import Path
 from docx import Document
 from docx.shared import Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -6,10 +7,11 @@ from pdm_builder.doc_builder import TableBuilder
 from pdm_builder.map_builder import MapBuilder
 from pdm_builder.tools import pegar_filtro_alteracoes, sort_fichas, checar_metas_presentes, get_map_files
 
+PATH_FILES_ONE_DRIVE = Path(r'C:\Users\h-pgy\one_drive_prefs\OneDrive - Default Directory\Shared Documents\Estruturação do PDM 2021-2024\Elaboração PDM Versão Final')
 
 def build_docx(filtro=None, sort_func=None, verbose=True):
 
-    parser = ParserFichas('original_data/Devolutiva 11-jun', 'rodada_3')
+    parser = ParserFichas(PATH_FILES_ONE_DRIVE/'Fichas Metas\Devolutiva 11-jun', 'rodada_5')
     fichas = parser()
     if filtro:
         print(f'Metas não encontradas {checar_metas_presentes(filtro, fichas)}')
@@ -18,7 +20,7 @@ def build_docx(filtro=None, sort_func=None, verbose=True):
     if sort_func:
         fichas = sort_func(fichas)
     docx = Document()
-    mapbuilder = MapBuilder()
+    mapbuilder = MapBuilder(path_controle=PATH_FILES_ONE_DRIVE/'Controle das Devolutivas.xlsx')
     for i, ficha in enumerate(fichas):
         if verbose:
             print(i)
@@ -40,7 +42,7 @@ def build_docx(filtro=None, sort_func=None, verbose=True):
 
         docx.add_page_break()
 
-    docx.save('teste_9.docx')
+    docx.save('teste_10.docx')
 
 
 if __name__ == '__main__':
