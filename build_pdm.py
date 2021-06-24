@@ -11,7 +11,7 @@ PATH_FILES_ONE_DRIVE = Path(r'C:\Users\h-pgy\one_drive_prefs\OneDrive - Default 
 
 def build_docx(filtro=None, sort_func=None, verbose=True):
 
-    parser = ParserFichas(PATH_FILES_ONE_DRIVE/'Fichas Metas\Devolutiva 11-jun', 'rodada_5')
+    parser = ParserFichas(PATH_FILES_ONE_DRIVE/'Fichas Metas\Devolutiva 11-jun', 'rodada_11')
     fichas = parser()
     if filtro:
         print(f'Metas não encontradas {checar_metas_presentes(filtro, fichas)}')
@@ -42,7 +42,7 @@ def build_docx(filtro=None, sort_func=None, verbose=True):
 
         docx.add_page_break()
 
-    docx.save('teste_10.docx')
+    docx.save('teste_11.docx')
 
 
 if __name__ == '__main__':
