@@ -43,9 +43,9 @@ class MapBuilder:
         self.add_zona_upper()
 
         if path_salvar is None:
-            path_salvar = self.solve_path_salvar('mapas_zonas_final')
+            path_salvar = 'mapas_zonas_final'
 
-        self.path_salvar = path_salvar
+        self.path_salvar = self.solve_path_salvar(path_salvar)
 
     def solve_path_salvar(self, path):
 
