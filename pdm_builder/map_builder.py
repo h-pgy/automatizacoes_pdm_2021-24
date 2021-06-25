@@ -273,6 +273,10 @@ class MapBuilder:
         else:
             print(f"Não há mapas para criar: {ficha['ficha_tecnica']['numero_meta']}")
 
+    def __call__(self, ficha):
+
+        self.create_maps(ficha)
+
 
 
 
