@@ -261,13 +261,15 @@ class MapBuilder:
         if reg is not None and not reg.empty:
             zonas, subs = self.separar_zonas_de_subs(reg)
 
-            if not zonas.empty:
-                zonas = self.merge_zonas(zonas)
-                self.create_map(zonas, num_meta, 'zonas_sp', binario)
-
             if not subs.empty:
                 subs = self.merge_subs(subs)
                 self.create_map(subs, num_meta, 'subs', binario)
+
+            elif not zonas.empty:
+                zonas = self.merge_zonas(zonas)
+                self.create_map(zonas, num_meta, 'zonas_sp', binario)
+
+
         else:
             print(f"Não há mapas para criar: {ficha['ficha_tecnica']['numero_meta']}")
 
