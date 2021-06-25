@@ -4,7 +4,8 @@ from functools import partial
 import pandas as pd
 import json
 import datetime
-
+from pandas.api.types import is_datetime64_any_dtype as is_datetime
+from pandas.core.dtypes.common import is_datetime_or_timedelta_dtype as is_datetime_or_timedelta
 
 class AbstractParserFichas:
 
@@ -41,6 +42,12 @@ class AbstractParserFichas:
             return ''
         if type(valor) is datetime.datetime:
             return str(valor)
+
+        if type(valor) is pd.Timestamp:
+            return str(valor)
+
+        if type(valor) not in {str, int, float, bool}:
+            print(type(valor))
 
         return valor
 
@@ -90,10 +97,21 @@ class AbstractParserFichas:
 
         return parsed
 
+    def datetime_column_to_text(self, df):
+
+        for col in df.columns:
+
+            if is_datetime(df[col]) or is_datetime_or_timedelta(df[col]):
+                df[col] = df[col].astype(str)
+
     def extract_whole_sheet(self, file, sheet_name):
 
-        return pd.read_excel(file, sheet_name=sheet_name,
-                             parse_dates=False, thousands=',').to_dict(orient='records')
+        df = pd.read_excel(file, sheet_name=sheet_name,
+                             parse_dates=False, thousands=',')
+
+        self.datetime_column_to_text(df)
+
+        return df.to_dict(orient='records')
 
     def salvar_file(self, parsed_ficha, path_salvar=None):
 
@@ -114,6 +132,10 @@ class AbstractParserFichas:
                 json.dump(parsed_ficha, f, ensure_ascii=False)
                 print(f'Erro Unicode na file {f_name}')
                 print(e)
+        except TypeError as e:
+
+            print(f"Deu problema oa salvar o json da meta {parsed_ficha['ficha_tecnica']['numero_meta']}")
+            print(e)
 
 
 class ParserFichas(AbstractParserFichas):
