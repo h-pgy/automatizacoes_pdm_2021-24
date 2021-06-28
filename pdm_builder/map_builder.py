@@ -48,19 +48,19 @@ ZONAS = (
 )
 
 
-def cmap_plot(geodf, col, f_name = None, path='mapas_subprefeituras_final', tipo_indicador = 'numérico'):
+def cmap_plot(geodf, col, f_name, path='mapas_subprefeituras_final', tipo_indicador = 'numérico'):
 
     if not os.path.exists(path):
         os.makedirs(path)
 
     if tipo_indicador == 'numérico':
         print('mapa numerico')
-        geodf[col] = geodf[col].apply(lambda x: float(x))
         ax = geodf.plot(column=col, cmap='GnBu',
                         legend=True,
                         figsize=(10, 15),
                         edgecolor='black',
                         vmin=0)
+
     else:
         print('mapa categorico')
         ax = geodf.plot(column=col, cmap='GnBu',
@@ -160,7 +160,15 @@ class MapBuilder:
         elif val == '':
             return 'vazio'
         try:
-            val = float(val)
+            if '.' in str(val):
+                esquerda, direita = str(val).split('.')
+
+                if int(direita) > 0:
+                    return float(val)
+                else:
+                    return int(esquerda)
+            else:
+                val = int(val)
         except ValueError:
             val = 'categorico'
 
@@ -220,18 +228,42 @@ class MapBuilder:
 
         return geodf
 
+    def ok_cast_int(self, df, col):
+
+        for item in df[col].unique():
+
+            if type(item) is float:
+                str_item = str(item)
+                if '.' in str_item:
+                    esquerda, direita = str_item.split('.')
+                    if int(direita) > 0:
+                        return False
+                else:
+                    if pd.isnull(item):
+                        return False
+            elif type(item) is int:
+                pass
+            else:
+                return False
+        return True
+
     def create_map(self, reg, num_meta, tipo_pol, binario):
 
         reg = self.padronizar_valores(reg)
         nom_file = f'{num_meta}_{tipo_pol}.png'
 
+        col_values = 'projecao_quadrienio'
+
         if (reg['flag_dados'] == 'vazio').all():
             print(f'Nenhum dado para a meta {num_meta} e tipo {tipo_pol}')
         else:
             if 'categorico' in reg['flag_dados'].unique() or binario:
-                cmap_plot(reg, 'projecao_quadrienio', nom_file, path=self.path_salvar, tipo_indicador='categorico')
+                cmap_plot(reg, col_values, nom_file, path=self.path_salvar, tipo_indicador='categorico')
             elif (reg['flag_dados'] == 'numerico').all():
-                cmap_plot(reg, 'projecao_quadrienio', nom_file, path=self.path_salvar, tipo_indicador='numérico')
+                if self.ok_cast_int(reg, col_values):
+                    reg[col_values] = reg[col_values].apply(int)
+
+                cmap_plot(reg, col_values, nom_file, path=self.path_salvar, tipo_indicador='numérico')
             else:
                 print(reg['flag_dados'].unique())
 
@@ -257,7 +289,7 @@ class MapBuilder:
             reg = self.get_regionalizacao(ficha)
         except ValueError as e:
             print(ficha['ficha_tecnica']['numero_meta'])
-            raise(e)
+            print(e)
 
         if reg is not None and not reg.empty:
             zonas, subs = self.separar_zonas_de_subs(reg)
