@@ -59,7 +59,8 @@ def cmap_plot(geodf, col, f_name = None, path='mapas_subprefeituras_final', tipo
         ax = geodf.plot(column=col, cmap='GnBu',
                         legend=True,
                         figsize=(10, 15),
-                        edgecolor='black')
+                        edgecolor='black',
+                        vmin=0)
     else:
         print('mapa categorico')
         ax = geodf.plot(column=col, cmap='GnBu',
@@ -265,7 +266,7 @@ class MapBuilder:
                 subs = self.merge_subs(subs)
                 self.create_map(subs, num_meta, 'subs', binario)
 
-            elif not zonas.empty:
+            if not zonas.empty:
                 zonas = self.merge_zonas(zonas)
                 self.create_map(zonas, num_meta, 'zonas_sp', binario)
 
