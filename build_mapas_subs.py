@@ -43,6 +43,7 @@ def build_all_maps(path_salvar_jsons, path_salvar_mapas = None):
             builder(ficha)
         except Exception as e:
             print(f"ERRO NA FICHA {ficha['file_original']}")
+            print(e)
 
 
 if __name__ == "__main__":
