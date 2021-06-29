@@ -49,7 +49,7 @@ class MapFileRenamer:
 
         num_origi = self.get_num_meta_file(file)
 
-        row = control[control['Meta' ]= =num_origi]
+        row = control[control['Meta' ]==num_origi]
 
         num = row['NOVO Nº Meta'].values[0]
 
