@@ -22,7 +22,7 @@ class MapFileRenamer:
 
     def get_one_drive_path(self, path_or_file):
 
-        return PATH_ONE_DRIV E /path_or_file
+        return PATH_ONE_DRIVE /path_or_file
 
     def read_controle(self):
 
