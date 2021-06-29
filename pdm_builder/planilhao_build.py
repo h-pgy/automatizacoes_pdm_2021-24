@@ -103,3 +103,102 @@ class DocxParser:
 
         return parsed_data
 
+
+class ExcelMaker:
+
+    def __init__(self, data):
+
+        self.data = data
+
+    def subset_data(self, data, target_keys):
+
+        parsed = []
+        for dici in data:
+            subset = {}
+            for key, value in dici.items():
+                if key in target_keys:
+                    subset[key] = dici[key]
+
+            parsed.append(subset)
+
+        return parsed
+
+    def planilha_principal(self, data):
+
+        coluns = ['Meta',
+                  'Meta_',
+                  'Objetivo estratégico',
+                  'Indicador',
+                  'Contexto',
+                  'Informações Complementares',
+                  'ODS vinculados',
+                  'Secretaria Responsável']
+
+        planilha_data = self.subset_data(data, coluns)
+
+        df = pd.DataFrame(planilha_data)
+        df.rename({'Meta': 'Número meta',
+                   'Meta_': 'Meta'}, axis=1, inplace=True)
+
+        ordem_cols = ['Número meta', 'Meta', 'Indicador', 'Contexto',
+                      'Informações Complementares', 'ODS vinculados', 'Secretaria Responsável']
+
+        return df[ordem_cols]
+
+    def planilha_iniciativas(self, data):
+
+        coluns = [
+            'Meta',
+            'Meta_',
+            'iniciativas'
+        ]
+
+        subset = self.subset_data(data, coluns)
+
+        parsed_data = []
+
+        for item in subset:
+            num_meta = item['Meta']
+            desc_meta = item['Meta_']
+            for letra, ini in item['iniciativas'].items():
+                row = {}
+                row['meta_numero'] = num_meta
+                row['meta_descricao'] = desc_meta
+                row['iniciativa'] = letra.replace(')', '')
+                row['iniciativa_descricao'] = ini
+
+                parsed_data.append(row)
+
+        return pd.DataFrame(parsed_data)
+
+    def planilha_regionalizacoes(self, data):
+
+        coluns = [
+            'Meta',
+            'Meta_',
+            'regionalizacao'
+        ]
+
+        subset = self.subset_data(data, coluns)
+
+        parsed_data = []
+
+        for item in subset:
+            row = {}
+            row['meta_numero'] = item['Meta']
+            row['meta_descricao'] = item['Meta_']
+            for subs, valor in item['regionalizacao'].items():
+                row[subs] = valor
+
+            parsed_data.append(row)
+
+        return pd.DataFrame(parsed_data)
+
+    def write_excel(self, file_name):
+
+        writer = pd.ExcelWriter(file_name, engine='xlsxwriter')
+        self.planilha_principal(self.data).to_excel(writer, sheet_name='principal', index=False)
+        self.planilha_iniciativas(self.data).to_excel(writer, sheet_name='iniciativas', index=False)
+        self.planilha_regionalizacoes(self.data).to_excel(writer, sheet_name='regionalizacao', index=False)
+
+        writer.save()
