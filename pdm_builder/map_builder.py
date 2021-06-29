@@ -55,19 +55,40 @@ def cmap_plot(geodf, col, f_name, path='mapas_subprefeituras_final', tipo_indica
 
     if tipo_indicador == 'numérico':
         print('mapa numerico')
-        ax = geodf.plot(column=col, cmap='GnBu',
-                        legend=True,
-                        figsize=(10, 15),
-                        edgecolor='black',
-                        vmin=0)
+        if geodf[col].max() < 8:
+            ax = geodf.plot(column=col, cmap='Blues',
+                            legend=True,
+                            figsize=(10, 15),
+                            edgecolor='0.5',
+                            vmin=0)
+        else:
+            try:
+                ax = geodf.plot(column=col, cmap='Blues',
+                                legend=True,
+                                figsize=(10, 15),
+                                edgecolor='0.5',
+                                legend_kwds = {'format':"%.0f"},
+                                vmin=0)
+            except Exception as e:
+                if '__init__() got an unexpected keyword argument' in str(e):
+                    print('Bug do legend keyword')
+                    geodf[col] = geodf[col].apply(float)
+                    ax = geodf.plot(column=col, cmap='Blues',
+                                    legend=True,
+                                    figsize=(10, 15),
+                                    edgecolor='0.5',
+                                    legend_kwds={'format': "%.0f"},
+                                    vmin=0)
+                else:
+                    raise(e)
 
     else:
         print('mapa categorico')
-        ax = geodf.plot(column=col, cmap='GnBu',
+        ax = geodf.plot(column=col, cmap='Blues',
                         legend=False,
                         categorical=True,
                         figsize=(10, 15),
-                        edgecolor='black')
+                        edgecolor='0.5')
 
 
     plt.axis('off')
