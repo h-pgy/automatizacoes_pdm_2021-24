@@ -48,52 +48,51 @@ ZONAS = (
 )
 
 
-def cmap_plot(geodf, col, f_name, path='mapas_subprefeituras_final', tipo_indicador = 'numérico'):
+def cmap_plot(geodf, col, f_name, base_layer=None, path='mapas_subprefeituras_final', tipo_indicador = 'numérico'):
 
     if not os.path.exists(path):
         os.makedirs(path)
+    fig, ax = plt.subplots(figsize=(10, 15))
 
     if tipo_indicador == 'numérico':
         print('mapa numerico')
         if geodf[col].max() < 8:
-            ax = geodf.plot(column=col, cmap='Blues',
-                            legend=True,
-                            figsize=(10, 15),
-                            edgecolor='0.5',
-                            vmin=0)
+            geodf.plot(ax = ax, column=col, cmap='Blues',
+                        legend=True,
+                        edgecolor='0.5',
+                        vmin=0)
         else:
             try:
-                ax = geodf.plot(column=col, cmap='Blues',
-                                legend=True,
-                                figsize=(10, 15),
-                                edgecolor='0.5',
-                                legend_kwds = {'format':"%.0f"},
-                                vmin=0)
+                geodf.plot(ax = ax, column=col, cmap='Blues',
+                            legend=True,
+                            edgecolor='0.5',
+                            legend_kwds = {'format':"%.0f"},
+                            vmin=0)
             except Exception as e:
                 if '__init__() got an unexpected keyword argument' in str(e):
                     print('Bug do legend keyword')
                     geodf[col] = geodf[col].apply(float)
-                    ax = geodf.plot(column=col, cmap='Blues',
-                                    legend=True,
-                                    figsize=(10, 15),
-                                    edgecolor='0.5',
-                                    legend_kwds={'format': "%.0f"},
-                                    vmin=0)
+                    geodf.plot(ax = ax, column=col, cmap='Blues',
+                                legend=True,
+                                edgecolor='0.5',
+                                legend_kwds={'format': "%.0f"},
+                                vmin=0)
                 else:
                     raise(e)
 
     else:
         print('mapa categorico')
-        ax = geodf.plot(column=col, cmap='Blues',
-                        legend=False,
-                        categorical=True,
-                        figsize=(10, 15),
-                        edgecolor='0.5')
+        geodf.plot(ax = ax, column=col, cmap='Blues',
+                    legend=False,
+                    categorical=True,
+                    edgecolor='0.5')
+
+    if base_layer is not None:
+        base_layer['geometry'].boundary.plot(ax=ax,
+                        color='black')
 
 
     plt.axis('off')
-
-    fig = ax.get_figure()
 
     fig.savefig(os.path.join(path, f_name))
 
@@ -102,7 +101,7 @@ def cmap_plot(geodf, col, f_name, path='mapas_subprefeituras_final', tipo_indica
 
 class MapBuilder:
 
-    def __init__(self, path_salvar = None, path_mapa_subs = None, path_mapa_zonas = None, path_controle = None):
+    def __init__(self, path_salvar = None, path_mapa_subs = None, path_mapa_zonas = None, path_controle = None, path_contorno_sp = None):
 
         if path_mapa_subs is None:
             path_mapa_subs = 'original_data/SIRGAS_SHP_subprefeitura/SIRGAS_SHP_subprefeitura_polygon.shp'
@@ -112,9 +111,12 @@ class MapBuilder:
             path_controle = 'original_data/Controle das Devolutivas.xlsx'
         if path_salvar is None:
             path_salvar = 'mapas_regionalizacao'
+        if path_contorno_sp is None:
+            path_contorno_sp = 'original_data/SIRGAS_limites_municipios_estado_sao_paulo/SIRGAS_limites_municipais.shp'
 
         self.mapa_subs = self.abrir_mapas_geosampa(path_mapa_subs)
         self.mapa_zonas = self.abrir_mapas_geosampa(path_mapa_zonas)
+        self.mapa_sp = self.pegar_contorno_sp(path_contorno_sp)
         self.arrumar_nome_zonas()
         self.controle = self.pegar_controle_regionalizacao(path_controle)
         self.path_salvar = set_path(path_salvar)
@@ -122,10 +124,18 @@ class MapBuilder:
 
     def abrir_mapas_geosampa(self, path):
         map_geodf = gpd.read_file(path)
-        map_geodf.crs = {'init': 'epsg:31983'}
-        map_geodf = map_geodf.to_crs(epsg=4326)
+        map_geodf.set_crs("epsg:3198", allow_override=True, inplace=True)
 
         return map_geodf
+
+    def pegar_contorno_sp(self, path):
+
+        map_geodf = self.abrir_mapas_geosampa(path)
+
+        sp =  map_geodf[map_geodf['municipio']=='SÃO PAULO'].copy()
+        sp.set_crs("epsg:3198", allow_override=True, inplace=True)
+
+        return sp
 
     def pegar_controle_regionalizacao(self, path_planilha):
 
@@ -232,7 +242,7 @@ class MapBuilder:
         merged = mapa_subs.merge(reg, how = 'left', on='sp_nome')
 
         geodf = gpd.GeoDataFrame(merged, geometry = merged['geometry'])
-        geodf.set_crs("epsg:4326", allow_override=True, inplace=True)
+        geodf.set_crs("epsg:3198", allow_override=True, inplace=True)
 
         return geodf
 
@@ -245,7 +255,7 @@ class MapBuilder:
         merged = mapa_zonas.merge(reg, how='left', on='nome_padrao')
 
         geodf = gpd.GeoDataFrame(merged, geometry=merged['geometry'])
-        geodf.set_crs("epsg:4326", allow_override=True, inplace=True)
+        geodf.set_crs("epsg:3198", allow_override=True, inplace=True)
 
         return geodf
 
@@ -279,12 +289,14 @@ class MapBuilder:
             print(f'Nenhum dado para a meta {num_meta} e tipo {tipo_pol}')
         else:
             if 'categorico' in reg['flag_dados'].unique() or binario:
-                cmap_plot(reg, col_values, nom_file, path=self.path_salvar, tipo_indicador='categorico')
+                cmap_plot(reg, col_values, nom_file, base_layer=self.mapa_sp,
+                          path=self.path_salvar, tipo_indicador='categorico')
             elif (reg['flag_dados'] == 'numerico').all():
                 if self.ok_cast_int(reg, col_values):
                     reg[col_values] = reg[col_values].apply(int)
 
-                cmap_plot(reg, col_values, nom_file, path=self.path_salvar, tipo_indicador='numérico')
+                cmap_plot(reg, col_values, nom_file, base_layer=self.mapa_sp,
+                          path=self.path_salvar, tipo_indicador='numérico')
             else:
                 print(reg['flag_dados'].unique())
 
