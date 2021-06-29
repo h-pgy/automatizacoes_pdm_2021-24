@@ -202,3 +202,11 @@ class ExcelMaker:
         self.planilha_regionalizacoes(self.data).to_excel(writer, sheet_name='regionalizacao', index=False)
 
         writer.save()
+
+if __name__ == "__main__":
+
+    path_arquivo = 'original_data/Fichas para Diagramar - 25.06.docx'
+    parser = DocxParser(path_arquivo)
+    data = parser()
+    xl = ExcelMaker(data)
+    xl.write_excel('planilhao_final.xlsx')
