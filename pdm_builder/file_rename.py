@@ -85,3 +85,10 @@ class MapFileRenamer:
 
             self.copy_bin_file(old_path, new_name)
             print(f'{new_name} criado')
+
+if __name__ == "__main__":
+
+    dir_origi = 'Mapas - Regionalização/V5 - final (numeração antiga)'
+    new_dir = 'Mapas - Regionalização/V5 - final (numeração nova)'
+    rename = MapFileRenamer(dir_origi, new_dir)
+    rename()
