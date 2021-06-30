@@ -70,7 +70,7 @@ class DocxParser:
                 return int(esquerda)
         else:
             try:
-                int(str_valor)
+                return int(str_valor)
             except ValueError:
                 return valor
 
