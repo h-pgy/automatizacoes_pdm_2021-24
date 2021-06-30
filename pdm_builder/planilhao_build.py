@@ -204,8 +204,11 @@ class ExcelMaker:
         writer.save()
 
 if __name__ == "__main__":
-
-    path_arquivo = 'original_data/Fichas para Diagramar - 25.06.docx'
+    from pathlib import Path
+    import xlsxwriter
+    path_onedrive = Path(
+        r'C:\Users\h-pgy\one_drive_prefs\OneDrive - Default Directory\Shared Documents\Versão final do Programa de Metas')
+    path_arquivo = path_onedrive / 'Fichas FINAL - 30.06.docx'
     parser = DocxParser(path_arquivo)
     data = parser()
     xl = ExcelMaker(data)
