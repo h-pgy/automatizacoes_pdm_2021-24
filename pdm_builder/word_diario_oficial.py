@@ -77,6 +77,15 @@ class DODocBuilder:
     def __call__(self):
 
         self.build_whole_doc()
-
         self.new_doc.save(self.new_file_path)
 
+if __name__ == '__main__':
+
+    from pathlib import Path
+
+    path_onedrive = Path(r'C:\Users\h-pgy\one_drive_prefs\OneDrive - Default Directory\Shared Documents\Versão final do Programa de Metas')
+
+    path_arquivo = path_onedrive/'Fichas FINAL - 30.06.docx'
+
+    builder = DODocBuilder(path_arquivo, 'word_diario_oficial_final_limpo.docx')
+    builder()
