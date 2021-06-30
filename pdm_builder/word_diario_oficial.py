@@ -19,7 +19,7 @@ class DODocBuilder:
 
     def build_obj_estrat(self, meta):
 
-        text = '((NG))Objetivo Estratégico:((NG)) {desc_objetivo}'
+        text = '((NG))Objetivo Estratégico:((CL)) {desc_objetivo}'
 
         obj = meta['Objetivo estratégico'].strip()
 
@@ -27,7 +27,7 @@ class DODocBuilder:
 
     def build_meta(self, meta):
 
-        text = '((NG))Meta {meta_num}:((NG)) {meta_desc}'
+        text = '((NG))Meta {meta_num}:((CL)) {meta_desc}'
 
         meta_num = meta['Meta'].strip()
         meta_desc = meta['Meta_'].strip()
@@ -36,7 +36,7 @@ class DODocBuilder:
 
     def build_indicador(self, meta):
 
-        text = '((NG))Indicador:((NG)) {desc_indi}'
+        text = '((NG))Indicador:((CL)) {desc_indi}'
 
         desc_indi = meta['Indicador'].strip()
 
@@ -44,7 +44,7 @@ class DODocBuilder:
 
     def build_iniciativas(self, meta):
 
-        text = '((NG))Iniciativas:((NG))\n{iniciativas}'
+        text = '((NG))Iniciativas:((CL))\n{iniciativas}'
 
         inis = meta['iniciativas']
         inis_text = '\n'.join([f'{key} {val}' for key, val in inis.items()])
